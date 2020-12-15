@@ -8,8 +8,11 @@ Steps to run script on IR
 
 Notes: 
 $1: run_id (e.g.HEME-20-xx)
+
 $2: target_dir e.g /mnt/Z_drive/acc_pathology/molecular/MOLECULAR/IonTorrent/HEME_report/
+
 $3: sequencing start date (yyyy-mm-dd)
+
 $4: sequencing end date (yyyy-mm-dd)
 
 Example: 
