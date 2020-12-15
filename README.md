@@ -7,6 +7,7 @@ Steps to run script on IR
 4.	output report will be saved in $2/$1/Report/run_id_heme_report.csv
 
 Notes: 
+
 $1: run_id (e.g.HEME-20-xx)
 
 $2: target_dir e.g /mnt/Z_drive/acc_pathology/molecular/MOLECULAR/IonTorrent/HEME_report/
