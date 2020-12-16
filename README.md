@@ -1,4 +1,4 @@
-Reporting pipeline for cancer diagnostic NGS panel on ThermoFisher IonTorrent platform
+# Reporting pipeline for cancer diagnostic NGS panel on ThermoFisher IonTorrent platform
 
 Steps to run script on IR 
 1.	Log in IR (Ion Report) backend
@@ -7,10 +7,14 @@ Steps to run script on IR
 4.	output report will be saved in $2/$1/Report/run_id_heme_report.csv
 
 Notes: 
+
 $1: run_id (e.g.HEME-20-xx)
-$2: target_dir e.g /mnt/Z_drive/acc_pathology/molecular/MOLECULAR/IonTorrent/HEME_report/
+
+$2: target_dir (e.g /mnt/Z_drive/acc_pathology/molecular/MOLECULAR/IonTorrent/HEME_report/)
+
 $3: sequencing start date (yyyy-mm-dd)
+
 $4: sequencing end date (yyyy-mm-dd)
 
 Example: 
-sh auto_HEME_report_V2.sh heme_20-25 /mnt/Z_drive/acc_pathology/molecular/MOLECULAR/IonTorrent/HEME_report 2020-11-01 2020-11-02
+sh auto_HEME_report_V2.sh heme_20-25 /mnt/Z_drive/acc_pathology/molecular/MOLECULAR/IonTorrent/HEME_report/ 2020-11-01 2020-11-02

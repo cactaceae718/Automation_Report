@@ -52,3 +52,5 @@ do
     unzip -d ${outdir} $z
     echo $z
 done
+
+Rscript HEME_full_report_V3 $1 $2
