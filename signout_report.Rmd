@@ -1,0 +1,174 @@
+---
+title: "Html_report"
+author: 'YC'
+date: "11/16/2020"
+output: 
+  html_document:
+    theme: journa
+    highlight: tango
+    code_folding: hide
+    df_print: paged
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    toc_collapsed: true
+    smooth_scroll: true
+    number_sections: no
+fontsize: 12pt
+---
+
+```{r, echo=FALSE,message=FALSE, warning=F}
+library("kableExtra")
+library(readxl)
+library(stringr)
+library(dplyr)
+library(gtools)
+library(tidyr)
+
+args<-commandArgs(T)
+run_id <- args[1]
+
+pmkb_db <- "/Volumes/Research/Yi/Copy_local/13_Myeloid_html_report/Generate_report_TG/PMKB_Interpretations_Complete_20200916-1417.xlsx"
+run_id <- "Myeloid20-26.xlsx"
+report_path <- "/Volumes/Research/Yi/Copy_local/13_Myeloid_html_report/"
+
+##### read in PMKB database
+DB <- read_excel(pmkb_db)
+# collapse citations to a single column
+DB_cite <- unite(DB[,7:ncol(DB)], "Cite_new", sep=" \n ", na.rm =T, remove = T)
+
+DB_new <- cbind(DB[,1:6], DB_cite)
+
+colnames(DB_new) <- c("Gene", "TumorType", "TissueType", "Variant", "Tier", "Interpretations", "Citations")
+DB_new$Index <- rownames(DB_new)
+
+##### read in and clean manual report
+input <- read_excel(paste0(report_path, run_id, ".xlsx"), sheet = "Report", col_names = T)
+colnames(input) <- input[3,]
+input <- input[-1:-3,]
+input_clean <- input[-which(is.na(input$Locus))[1]:-nrow(input),]
+
+input_clean <- input_clean[!grepl("Control", input_clean$`Pri. Opi.`, ignore.case = T) & !grepl("artifa", input_clean$`Pri. Opi.`, ignore.case = T) & !grepl("failed", input_clean$`Pri. Opi.`, ignore.case = T),]
+input_clean <- input_clean[input_clean$Locus!="NONE",]
+input_clean <- as.data.frame(input_clean)
+input_clean <- subset(input_clean, input_clean$Locus!="NA")
+
+input_clean$X..Frequency <- as.numeric(input_clean$X..Frequency)
+for (id in 1:nrow(input_clean)) {
+  input_clean$HP_id[id] <- paste0(unlist(str_split(input_clean$Sample[id], "-"))[1:3], collapse = "-")
+}
+
+#cols <- c("Genes", "Transcript", "Coding", "Variant.Effect", "AA")
+
+input_new <- data.frame()
+df_NR <- data.frame()
+df_NM <- data.frame()
+
+for (v in 1:nrow(input_clean)) {
+  genes <- unlist(str_split(input_clean$Genes[v], ","))[!grepl("NR_", unlist(str_split(input_clean$Transcript[v], ",")))]
+  trs <- unlist(str_split(input_clean$Transcript[v], ","))[!grepl("NR_", unlist(str_split(input_clean$Transcript[v], ",")))]
+  cods <- unlist(str_split(input_clean$Coding[v], ","))
+  var_eff <-unlist(str_split(input_clean$Variant.Effect[v], ","))
+  aa <- unlist(str_split(input_clean$AA[v], ","))
+  
+  
+  genes_NR <- unlist(str_split(input_clean$Genes[v], ","))[grepl("NR_", unlist(str_split(input_clean$Transcript[v], ",")))]
+  trs_NR <- unlist(str_split(input_clean$Transcript[v], ","))[grepl("NR_", unlist(str_split(input_clean$Transcript[v], ",")))]
+  
+  if (length(genes_NR)!=0) {
+    temp_df_NR <- data.frame(input_clean[v, 1:3], Genes = genes_NR, input_clean[v,5:6],
+                        Transcript =  trs_NR, Coding="NA", Variant.Effect="NA", AA = "NA", 
+                        input_clean[v, c(10:13,16:ncol(input_clean))], stringsAsFactors = F)
+    df_NR <- rbind(df_NR, temp_df_NR)
+  }
+  
+    temp_df_NM <- data.frame(input_clean[v, 1:3], Genes = genes, input_clean[v,5:6], 
+                             Transcript = trs, Coding=cods, Variant.Effect=var_eff, AA = aa, 
+                             input_clean[v, c(10:13,16:ncol(input_clean))], stringsAsFactors = F) 
+    df_NM <- rbind(df_NM, temp_df_NM)
+}
+input_new <- rbind(df_NM, df_NR)
+
+sub_report <- split(input_new, input_new$HP_id)
+```
+
+
+```{r, echo=FALSE,message=FALSE,results="asis"} 
+df <- data.frame()
+for (ls in 1:length(sub_report)) {
+  sample_id <- names(sub_report)[[ls]]
+  report <- sub_report[[ls]]
+
+  cat("\n#", sample_id, " \n")
+  
+  cat("\n##", "Clinical Information", " \n")
+  cat("\n Tumor Type:", "Blood, Bone Marrow", "\n")
+  cat("\n Tumor Purity:", "100% \n")
+  cat("\n Surgical Tumor Specimen:", "? \n") 
+  cat("<hr style=height:1px;border-width:0;color:gray;background-color:gray> \n" )
+  
+  cat("\n##", "Result", " \n")
+  
+  for (l in 1:nrow(report)) {
+    sub_db <- DB_new[(DB_new$Gene %in% report$Genes[l]) & grepl("Blood", DB_new$TissueType, ignore.case = T),]
+    
+    if (report$Type[l]=="RNAExonVariant" | report$Type[l]=="FUSION") {
+    temp_df <- data.frame(HP_id = report$HP_id[l],
+                   Variant = paste0("Variant: ", report$Genes[l]),
+                   Variant_Type = paste0("Variant Type: ", "Fusion"), stringsAsFactors = F) 
+    
+    cat("\n#### RNA Sequencing Results: \n")
+    
+    cat(" \n", temp_df$Variant, " \n")
+    cat(" \n", temp_df$Variant_Type, " \n")
+    cat("<br> \n" ) 
+    cat("<hr style=height:1px;border-width:0;color:gray;background-color:gray> \n" )
+    
+    }else{
+    var_ = paste0(report$Genes[l], " ",
+                ifelse(report$Coding[l]=="NA", "", report$Coding[l]), " ",
+                 ifelse(report$AA[l]=="NA", "", report$AA[l]))
+
+    temp_df <- data.frame(HP_id = report$HP_id[l],
+                   Variant = paste0("Variant: ", var_),
+                   Variant_Type = paste0("Variant Type: ", report$Type[l]),
+                   Variant_Allele_frequency = paste0("Variant Allele frequency: ", round(report$X..Frequency[l]), "%" ),
+                   Read_Depth = paste0("Read Depth: ", report$Coverage[l]),
+                   Transcript_ID = paste0("Transcript ID: ", report$Transcript[l]), stringsAsFactors = F )
+
+    cat("\n#### DNA Sequencing Results: \n")
+    
+    cat("\n", "<b>Tier:</b>", ifelse(nrow(sub_db)!=0, sub_db$Tier,"NA"), " \n" ) 
+    
+    cat(" \n", temp_df$Variant, " \n")
+    cat(" \n", temp_df$Variant_Type, " \n")
+    cat(" \n", temp_df$Variant_Allele_frequency, " \n")
+    cat(" \n", temp_df$Read_Depth, " \n")
+    cat(" \n", temp_df$Transcript_ID, " \n")
+    cat("<br> \n" )
+    }
+  }  
+
+    if (nrow(sub_db)!=0) {
+      if (sub_db$Tier==1) {
+        
+        cat("<hr style=height:1px;border-width:0;color:gray;background-color:gray> \n" )
+        cat("\n## Comments \n" )
+        
+        for (l in 1:length(unique(report$Genes))) {
+          sub_db <- DB_new[(DB_new$Gene %in% unique(report$Genes)[l]) & grepl("Blood", DB_new$TissueType, ignore.case = T),]
+          cat(" \n", sub_db$Interpretations, " \n") 
+        }
+        
+      cat("<hr style=height:1px;border-width:0;color:gray;background-color:gray> \n" )
+      
+      cat("\n## References \n" )
+      for (l in 1:length(unique(report$Genes))) {
+          sub_db <- DB_new[(DB_new$Gene %in% unique(report$Genes)[l]) & grepl("Blood", DB_new$TissueType, ignore.case = T),]
+          cat(" \n", sub_db$Citations, " \n") 
+      }
+      cat("<hr style=height:1px;border-width:0;color:gray;background-color:gray> \n" )
+      }
+  }  
+}  
+```
